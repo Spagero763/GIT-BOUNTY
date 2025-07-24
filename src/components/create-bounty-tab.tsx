@@ -22,7 +22,7 @@ const formSchema = z.object({
   amount: z.coerce.number().min(1, "Bounty must be greater than 0."),
 });
 
-const DBT_TO_ETH_RATE = 0.000000001; 
+const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
 
 export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabProps) {
   const [issueUrl, setIssueUrl] = useState('');
@@ -34,9 +34,9 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
   const ethEquivalent = useMemo(() => {
     const amount = parseFloat(bountyAmount);
     if (isNaN(amount) || amount <= 0) {
-      return 0;
+      return '0';
     }
-    return amount * DBT_TO_ETH_RATE;
+    return (amount * DBT_TO_ETH_RATE).toPrecision(2);
   }, [bountyAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,10 +109,21 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       const receipt = await createBountyTx.wait();
       
       let bountyId = '';
-      const event = receipt.logs.find((log: any) => log.fragment && log.fragment.name === 'BountyCreated');
-      if (event && event.args) {
-          bountyId = event.args.bountyId.toString();
+      if (receipt.logs) {
+        const eventInterface = new ethers.Interface(contracts.bountyFactory.interface.fragments);
+        for (const log of receipt.logs) {
+            try {
+                const parsedLog = eventInterface.parseLog(log);
+                if (parsedLog && parsedLog.name === 'BountyCreated') {
+                    bountyId = parsedLog.args.bountyId.toString();
+                    break;
+                }
+            } catch (e) {
+                // Not a log from this contract, ignore
+            }
+        }
       }
+
 
       if (!bountyId) {
         throw new Error("Could not find BountyCreated event in transaction logs.");
@@ -185,9 +196,9 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
               required
               className="bg-white/5 border-white/10"
             />
-            {ethEquivalent > 0 && (
+            {parseFloat(bountyAmount) > 0 && (
                 <p className="text-sm text-gray-400 mt-1">
-                    ~ {ethEquivalent.toPrecision(2)} Base Sepolia ETH
+                    ~ {ethEquivalent} Base Sepolia ETH
                 </p>
             )}
           </div>
