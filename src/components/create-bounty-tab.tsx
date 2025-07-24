@@ -81,15 +81,15 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       }
 
       // On-chain interaction
-      toast({ title: "Processing Transaction", description: "Approving token transfer..." });
+      toast({ title: "Processing Transaction", description: "Please approve the token transfer in your wallet." });
       
       const approveTx = await contracts.devBountyToken.approve(CONTRACT_ADDRESSES.BountyFactory, amountInWei);
+      
+      toast({ title: "Processing Transaction", description: "Waiting for approval confirmation..." });
       await approveTx.wait();
       
-      toast({ title: "Processing Transaction", description: "Creating bounty on-chain..." });
+      toast({ title: "Processing Transaction", description: "Creating bounty on-chain... Please confirm in your wallet." });
 
-      // For `createBounty` we need a solver address. For now, we'll use a placeholder
-      // until we implement the full assignment flow.
       const placeholderSolverAddress = ethers.ZeroAddress;
 
       const createBountyTx = await contracts.bountyFactory.createBounty(
@@ -98,9 +98,9 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         amountInWei
       );
       
+      toast({ title: "Processing Transaction", description: "Waiting for bounty creation confirmation..." });
       const receipt = await createBountyTx.wait();
       
-      // We need to get the bountyId from the event logs
       let bountyId = '';
       const event = receipt.logs.find((log: any) => log.fragment && log.fragment.name === 'BountyCreated');
       if (event && event.args) {
@@ -184,7 +184,7 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
             ) : (
               <Rocket className="mr-2 h-4 w-4" />
             )}
-            { !address ? "Connect Wallet to Create" : isLoading ? 'Creating...' : 'Create On-Chain Bounty'}
+            { !address ? "Connect Wallet to Create" : isLoading ? 'Processing...' : 'Create On-Chain Bounty'}
           </Button>
         </form>
       </CardContent>

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { BountyFactory_ABI, DevBountyToken_ABI } from '@/lib/abi';
+import { BountyFactory_ABI, DevBountyToken_ABI, EscrowPayments_ABI, ReputationTracker_ABI } from '@/lib/abi';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 import type { Contracts } from '@/lib/types';
 
@@ -38,8 +38,10 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
         const bountyFactory = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, signer);
         const devBountyToken = new ethers.Contract(CONTRACT_ADDRESSES.DevBountyToken, DevBountyToken_ABI, signer);
+        const escrowPayments = new ethers.Contract(CONTRACT_ADDRESSES.EscrowPayments, EscrowPayments_ABI, signer);
+        const reputationTracker = new ethers.Contract(CONTRACT_ADDRESSES.ReputationTracker, ReputationTracker_ABI, signer);
 
-        setContracts({ bountyFactory, devBountyToken });
+        setContracts({ bountyFactory, devBountyToken, escrowPayments, reputationTracker });
 
       } catch (error) {
         console.error("Failed to connect wallet:", error);

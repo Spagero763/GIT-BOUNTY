@@ -23,4 +23,6 @@ export interface Profile {
 export interface Contracts {
   bountyFactory: ethers.Contract;
   devBountyToken: ethers.Contract;
+  escrowPayments: ethers.Contract;
+  reputationTracker: ethers.Contract;
 }
