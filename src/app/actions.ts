@@ -46,10 +46,11 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
 
 export async function markBountyAsCompleted(bounty: Bounty): Promise<{ success: boolean; error?: string }> {
   const privateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined;
-  const rpcUrl = process.env.RPC_URL;
+  // Using a public, hardcoded RPC URL for Base Sepolia testnet to simplify deployment.
+  const rpcUrl = "https://sepolia.base.org";
 
-  if (!privateKey || !rpcUrl) {
-    const errorMsg = 'Server-side wallet not configured. Please set PRIVATE_KEY and RPC_URL environment variables.';
+  if (!privateKey) {
+    const errorMsg = 'Server-side wallet not configured. Please set the PRIVATE_KEY environment variable.';
     console.error(errorMsg);
     return { success: false, error: errorMsg };
   }
