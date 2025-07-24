@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ethers } from 'ethers';
-import { BountyFactory_ABI, DevBountyToken_ABI, EscrowPayments_ABI, ReputationTracker_ABI } from '@/lib/abi';
+import { BountyFactory_ABI, DevBountyToken_ABI, EscrowPayments_ABI, ReputationTracker_ABI, RewardDistributor_ABI } from '@/lib/abi';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 import type { Contracts } from '@/lib/types';
 
@@ -40,8 +40,9 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         const devBountyToken = new ethers.Contract(CONTRACT_ADDRESSES.DevBountyToken, DevBountyToken_ABI, signer);
         const escrowPayments = new ethers.Contract(CONTRACT_ADDRESSES.EscrowPayments, EscrowPayments_ABI, signer);
         const reputationTracker = new ethers.Contract(CONTRACT_ADDRESSES.ReputationTracker, ReputationTracker_ABI, signer);
+        const rewardDistributor = new ethers.Contract(CONTRACT_ADDRESSES.RewardDistributor, RewardDistributor_ABI, signer);
 
-        setContracts({ bountyFactory, devBountyToken, escrowPayments, reputationTracker });
+        setContracts({ bountyFactory, devBountyToken, escrowPayments, reputationTracker, rewardDistributor });
 
       } catch (error) {
         console.error("Failed to connect wallet:", error);
@@ -63,10 +64,8 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     if (typeof window.ethereum !== 'undefined') {
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
-          // Re-connect to update address and contract instances
           connectWallet();
         } else {
-          // Handle disconnection
           disconnectWallet();
         }
       };

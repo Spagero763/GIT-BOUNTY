@@ -8,11 +8,8 @@ import { useWallet } from '@/hooks/use-wallet';
 
 interface BountyCardProps {
   bounty: Bounty;
-  profile: Profile;
-  onAssign: (bounty: Bounty) => void;
   onComplete: (bounty: Bounty) => void;
   isMyBountyView?: boolean;
-  isAssigning?: boolean;
   isCompleting?: boolean;
 }
 
@@ -24,11 +21,10 @@ const statusConfig: { [key in BountyStatus]: { color: 'green' | 'yellow' | 'blue
 
 const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
 
-export default function BountyCard({ bounty, profile, onAssign, onComplete, isMyBountyView = false, isAssigning = false, isCompleting = false }: BountyCardProps) {
+export default function BountyCard({ bounty, onComplete, isMyBountyView = false, isCompleting = false }: BountyCardProps) {
   const { address } = useWallet();
   const { color, text } = statusConfig[bounty.status];
   
-  const canAssign = bounty.status === 'Open' && profile.githubUsername && address && address.toLowerCase() !== bounty.creatorAddress.toLowerCase();
   const canComplete = bounty.status === 'Assigned' && address && address.toLowerCase() === bounty.creatorAddress.toLowerCase();
   
   const ethEquivalent = (bounty.amount * DBT_TO_ETH_RATE).toPrecision(2);
@@ -77,12 +73,6 @@ export default function BountyCard({ bounty, profile, onAssign, onComplete, isMy
             <Button variant="outline" className="w-full" onClick={() => onComplete(bounty)} disabled={isCompleting}>
                 {isCompleting ? <Loader2 className="mr-2 animate-spin" /> : <Check className="mr-2" />}
                 {isCompleting ? "Completing..." : "Mark as Completed"}
-            </Button>
-        )}
-        {!isMyBountyView && canAssign && (
-            <Button className="w-full bg-accent hover:bg-accent/90" onClick={() => onAssign(bounty)} disabled={isAssigning}>
-                {isAssigning ? <Loader2 className="mr-2 animate-spin" /> : <Briefcase className="mr-2" />}
-                {isAssigning ? "Assigning..." : "Take on Bounty"}
             </Button>
         )}
       </CardFooter>

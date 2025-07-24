@@ -23,9 +23,8 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
   }, [allBounties, address]);
 
   const myAssignedBounties = useMemo(() => {
-    // Using solverGithub for now, as solverAddress is not set on assignment in this app version
-    return allBounties.filter(b => b.solverGithub === profile.githubUsername);
-  }, [allBounties, profile.githubUsername]);
+    return allBounties.filter(b => b.solverAddress && b.solverAddress.toLowerCase() === address?.toLowerCase() && b.creatorAddress.toLowerCase() !== address?.toLowerCase());
+  }, [allBounties, address]);
 
   const handleComplete = async (bounty: Bounty) => {
     setCompletingBountyId(bounty.id);
@@ -66,8 +65,6 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
           <BountyCard 
             key={bounty.id} 
             bounty={bounty}
-            profile={profile}
-            onAssign={() => {}} 
             onComplete={handleComplete}
             isMyBountyView={true}
             isCompleting={completingBountyId === bounty.id}

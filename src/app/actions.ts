@@ -40,35 +40,6 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
   }
 }
 
-// NOTE: This is a placeholder as the contract doesn't support assigning a bounty after creation.
-// We are calling 'submitSolution' as a stand-in for a real assignment function.
-// A more robust solution would involve modifying the smart contract.
-export async function assignBountyToSolver(bountyId: string): Promise<{ success: boolean, error?: string }> {
-    try {
-        if (!process.env.PRIVATE_KEY) {
-            throw new Error("PRIVATE_KEY is not set in the server environment.");
-        }
-        if (!process.env.RPC_URL) {
-            throw new Error("RPC_URL is not set in the server environment.");
-        }
-        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-        const contract = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, wallet);
-        
-        // This is a placeholder interaction. 
-        // In a real scenario, you'd have a proper assign function in your contract.
-        // For now, we simulate this by calling submitSolution.
-        const tx = await contract.submitSolution(bountyId);
-        await tx.wait();
-
-        return { success: true };
-    } catch (err: any) {
-        console.error("Assign Bounty Error:", err);
-        return { success: false, error: err.reason || "Failed to assign bounty. Check server logs." };
-    }
-}
-
-
 export async function markBountyAsCompleted(bountyId: string): Promise<{ success: boolean, error?: string }> {
     try {
         if (!process.env.PRIVATE_KEY) {

@@ -3,9 +3,9 @@ import type { Bounty, Profile } from '@/lib/types';
 import BountyCard from './bounty-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Loader2 } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { assignBountyToSolver } from '@/app/actions';
+import { markBountyAsCompleted } from '@/app/actions';
 
 interface BrowseBountiesTabProps {
   bounties: Bounty[];
@@ -18,51 +18,40 @@ type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 export default function BrowseBountiesTab({ bounties, profile, updateBounty }: BrowseBountiesTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('newest');
-  const [assigningBountyId, setAssigningBountyId] = useState<string | null>(null);
+  const [completingBountyId, setCompletingBountyId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleAssign = async (bounty: Bounty) => {
-    if (!profile.githubUsername) {
-      toast({
-        variant: "destructive",
-        title: "Profile Incomplete",
-        description: "Please set your GitHub username in the Profile tab first.",
-      });
-      return;
-    }
-    setAssigningBountyId(bounty.id);
-    toast({
-      title: "Assigning Bounty...",
-      description: "Submitting your interest on-chain. Please wait.",
+  const handleComplete = async (bounty: Bounty) => {
+    setCompletingBountyId(bounty.id);
+     toast({
+      title: "Completing Bounty...",
+      description: "Processing on-chain transaction. Please wait.",
     });
 
-    // In the current contract, there is no direct "assign" function.
-    // We are using `submitSolution` as a stand-in to represent a user taking on the task.
-    // This is a simplification; a real-world scenario might require contract changes.
-    const result = await assignBountyToSolver(bounty.id);
+    const result = await markBountyAsCompleted(bounty.id);
 
     if (result.success) {
-      updateBounty({ ...bounty, status: 'Assigned', solverGithub: profile.githubUsername });
+      updateBounty({ ...bounty, status: 'Completed' });
       toast({
-        title: "Bounty Assigned!",
-        description: "You have successfully taken on this bounty.",
+        title: "Bounty Completed!",
+        description: `${bounty.title} has been marked as completed.`,
       });
     } else {
-      toast({
-        variant: "destructive",
-        title: "Assignment Failed",
-        description: result.error,
-      });
+        toast({
+            variant: "destructive",
+            title: "Completion Failed",
+            description: result.error,
+        });
     }
-    setAssigningBountyId(null);
+    setCompletingBountyId(null);
   };
+
 
   const filteredAndSortedBounties = useMemo(() => {
     return bounties
       .filter(bounty => 
         (bounty.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         bounty.summary.toLowerCase().includes(searchTerm.toLowerCase())) &&
-         bounty.status === 'Open'
+         bounty.summary.toLowerCase().includes(searchTerm.toLowerCase()))
       )
       .sort((a, b) => {
         switch (sortOption) {
@@ -112,16 +101,14 @@ export default function BrowseBountiesTab({ bounties, profile, updateBounty }: B
             <BountyCard 
                 key={bounty.id} 
                 bounty={bounty} 
-                profile={profile} 
-                onAssign={handleAssign} 
-                onComplete={() => {}}
-                isAssigning={assigningBountyId === bounty.id}
+                onComplete={handleComplete}
+                isCompleting={completingBountyId === bounty.id}
              />
           ))}
         </div>
       ) : (
         <div className="text-center py-16 text-gray-400 bg-white/5 rounded-lg border border-dashed border-white/10">
-          <h3 className="text-xl font-semibold">No open bounties found</h3>
+          <h3 className="text-xl font-semibold">No bounties found</h3>
           <p>Try adjusting your filters or check back later.</p>
         </div>
       )}

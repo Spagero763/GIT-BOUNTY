@@ -76,7 +76,6 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       }
       
       const { amount } = validation.data;
-      // Correctly parse the amount to the 18-decimal format required by the contract
       const amountInWei = ethers.parseUnits(amount.toString(), 18);
 
       const { summary, title, error } = await getSummaryForIssue(issueUrl);
@@ -95,17 +94,20 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       
       const approveTx = await contracts.devBountyToken.approve(CONTRACT_ADDRESSES.BountyFactory, amountInWei);
       
-      toast({ title: "Processing Transaction", description: "Waiting for approval confirmation..." });
+      toast({ title: "Approval Sent", description: "Waiting for approval confirmation..." });
       await approveTx.wait();
       
-      toast({ title: "Processing Transaction", description: "Creating bounty on-chain... Please confirm in your wallet." });
+      toast({ title: "Approval Confirmed!", description: "Creating bounty on-chain... Please confirm in your wallet." });
       
+      // According to the contract, createBounty requires a solver address.
+      // For this UX, we'll temporarily assign the creator as the solver.
       const createBountyTx = await contracts.bountyFactory.createBounty(
         issueUrl,
+        address, // Solver address (placeholder)
         amountInWei
       );
       
-      toast({ title: "Processing Transaction", description: "Waiting for bounty creation confirmation..." });
+      toast({ title: "Bounty Creation Sent", description: "Waiting for transaction confirmation..." });
       const receipt = await createBountyTx.wait();
       
       let bountyId = '';
@@ -124,7 +126,6 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         }
       }
 
-
       if (!bountyId) {
         throw new Error("Could not find BountyCreated event in transaction logs.");
       }
@@ -135,9 +136,11 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         title,
         summary,
         amount,
-        status: 'Open',
+        status: 'Assigned', // Since it's created with a solver
         creatorGithub: profile.githubUsername,
+        solverGithub: profile.githubUsername, // Assigned to self initially
         creatorAddress: address,
+        solverAddress: address, // Assigned to self initially
         createdAt: new Date().toISOString(),
       };
 

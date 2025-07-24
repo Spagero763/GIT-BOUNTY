@@ -25,4 +25,5 @@ export interface Contracts {
   devBountyToken: ethers.Contract;
   escrowPayments: ethers.Contract;
   reputationTracker: ethers.Contract;
+  rewardDistributor: ethers.Contract;
 }
