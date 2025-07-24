@@ -43,3 +43,4 @@ This system guarantees that the Creator can't withdraw the funds after they've b
 1.  **Connect Wallet**: Connect your Web3 wallet (e.g., MetaMask). Make sure you are on the Base Sepolia test network.
 2.  **Set Profile**: Go to the Profile tab and set your GitHub username.
 3.  **Create or Browse**: You can create a new bounty for a GitHub issue or browse existing bounties created by others.
+
