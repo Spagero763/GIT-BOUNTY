@@ -89,12 +89,9 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       await approveTx.wait();
       
       toast({ title: "Processing Transaction", description: "Creating bounty on-chain... Please confirm in your wallet." });
-
-      const placeholderSolverAddress = ethers.ZeroAddress;
-
+      
       const createBountyTx = await contracts.bountyFactory.createBounty(
         issueUrl,
-        placeholderSolverAddress, 
         amountInWei
       );
       
