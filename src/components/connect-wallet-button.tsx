@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { Button } from './ui/button';
 import { Wallet } from 'lucide-react';
@@ -15,10 +16,20 @@ export default function ConnectWalletButton() {
   const { address, isConnected } = useAccount();
   const { connectors, connect } = useConnect();
   const { disconnect } = useDisconnect();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const truncateAddress = (addr: string) => {
     if (!addr) return '';
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  }
+
+  if (!isClient) {
+    // Render a placeholder on the server and during initial client render
+    return <Button><Wallet className="mr-2" /> Connect Wallet</Button>;
   }
 
   if (isConnected && address) {
