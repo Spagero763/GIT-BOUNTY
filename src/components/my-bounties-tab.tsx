@@ -18,11 +18,13 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
 
 
   const myCreatedBounties = useMemo(() => {
-    return allBounties.filter(b => b.creatorAddress && b.creatorAddress.toLowerCase() === address?.toLowerCase());
+    if (!address) return [];
+    return allBounties.filter(b => b.creatorAddress && b.creatorAddress.toLowerCase() === address.toLowerCase());
   }, [allBounties, address]);
 
   const myAssignedBounties = useMemo(() => {
-    return allBounties.filter(b => b.solverAddress && b.solverAddress.toLowerCase() === address?.toLowerCase() && b.creatorAddress.toLowerCase() !== address?.toLowerCase());
+    if (!address) return [];
+    return allBounties.filter(b => b.solverAddress && b.solverAddress.toLowerCase() === address.toLowerCase() && b.creatorAddress.toLowerCase() !== address.toLowerCase());
   }, [allBounties, address]);
 
   const handleComplete = async (bounty: Bounty) => {
@@ -43,9 +45,12 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
 
     try {
         const tx = await contracts.bountyFactory.completeBounty(bounty.id);
+        
+        toast({ title: "Transaction Sent", description: "Waiting for confirmation..." });
         await tx.wait();
 
         updateBounty({ ...bounty, status: 'Completed' });
+        
         toast({
             title: "Bounty Completed!",
             description: `${bounty.title} has been marked as completed.`,
@@ -53,10 +58,11 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
 
     } catch (err: any) {
         console.error("Complete Bounty Error:", err);
+        const errorMessage = err.reason || "Failed to complete bounty. Check console logs for details.";
         toast({
             variant: "destructive",
             title: "Completion Failed",
-            description: err.reason || "Failed to complete bounty. Check console logs.",
+            description: errorMessage,
         });
     } finally {
         setCompletingBountyId(null);
@@ -86,11 +92,11 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
     );
   }
   
-  if (!profile.githubUsername || !address) {
+  if (!address) {
     return (
        <div className="text-center py-16 text-gray-400 bg-white/5 rounded-lg border border-dashed border-white/10">
-        <h3 className="text-xl font-semibold">Connect Wallet & Set Profile</h3>
-        <p>Please connect your wallet and set your GitHub username in the Profile tab to view your bounties.</p>
+        <h3 className="text-xl font-semibold">Connect Wallet</h3>
+        <p>Please connect your wallet to view your bounties.</p>
       </div>
     );
   }
