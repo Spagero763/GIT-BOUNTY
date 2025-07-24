@@ -13,12 +13,15 @@ const nextConfig: NextConfig = {
     ],
   },
   webpack: (config) => {
-    // See https://webpack.js.org/configuration/watch/#watchoptions-ignored
-    config.watchOptions = config.watchOptions || {};
-    config.watchOptions.ignored = [
-        ...(Array.isArray(config.watchOptions.ignored) ? config.watchOptions.ignored : []),
+    // Vercel's build environment provides a read-only config object.
+    // We cannot mutate it directly, so we create a new object.
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: [
+        ...(config.watchOptions.ignored || []),
         '**/.genkit/**',
     ]
+    };
     return config
   },
 };
