@@ -22,7 +22,7 @@ const formSchema = z.object({
   amount: z.coerce.number().min(1, "Bounty must be greater than 0."),
 });
 
-const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
+const DBT_TO_ETH_RATE = 0.000000001; 
 
 export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabProps) {
   const [issueUrl, setIssueUrl] = useState('');
@@ -76,6 +76,7 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       }
       
       const { amount } = validation.data;
+      // Correctly parse the amount to the 18-decimal format required by the contract
       const amountInWei = ethers.parseUnits(amount.toString(), 18);
 
       const { summary, title, error } = await getSummaryForIssue(issueUrl);
