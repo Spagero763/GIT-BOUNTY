@@ -1,3 +1,4 @@
+
 # GitBounty Board
 
 GitBounty Board is a decentralized application that revolutionizes open-source development by allowing anyone to place a cryptocurrency bounty on any GitHub issue. It creates a transparent and incentivized marketplace for developers to solve problems and get rewarded directly for their contributions.
