@@ -1,6 +1,7 @@
+
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Bounty, Profile } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { WagmiProvider } from '@/hooks/use-wallet';
@@ -19,6 +20,11 @@ const queryClient = new QueryClient();
 export default function Home() {
   const [bounties, setBounties] = useLocalStorage<Bounty[]>('bounties', []);
   const [profile, setProfile] = useLocalStorage<Profile>('profile', { githubUsername: '' });
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const addBounty = (bounty: Bounty) => {
     setBounties(prev => [...prev, bounty]);
@@ -43,18 +49,22 @@ export default function Home() {
                 <TabsTrigger value="my-bounties" className="py-2.5"><List className="mr-2" />My Bounties</TabsTrigger>
               </TabsList>
               
-              <TabsContent value="profile" className="mt-6">
-                <ProfileTab profile={profile} setProfile={setProfile} />
-              </TabsContent>
-              <TabsContent value="browse" className="mt-6">
-                <BrowseBountiesTab bounties={bounties} profile={profile} updateBounty={updateBounty} />
-              </TabsContent>
-              <TabsContent value="create" className="mt-6">
-                <CreateBountyTab addBounty={addBounty} profile={profile} />
-              </TabsContent>
-              <TabsContent value="my-bounties" className="mt-6">
-                <MyBountiesTab allBounties={bounties} profile={profile} updateBounty={updateBounty} />
-              </TabsContent>
+              {isClient && (
+                <>
+                  <TabsContent value="profile" className="mt-6">
+                    <ProfileTab profile={profile} setProfile={setProfile} />
+                  </TabsContent>
+                  <TabsContent value="browse" className="mt-6">
+                    <BrowseBountiesTab bounties={bounties} profile={profile} updateBounty={updateBounty} />
+                  </TabsContent>
+                  <TabsContent value="create" className="mt-6">
+                    <CreateBountyTab addBounty={addBounty} profile={profile} />
+                  </TabsContent>
+                  <TabsContent value="my-bounties" className="mt-6">
+                    <MyBountiesTab allBounties={bounties} profile={profile} updateBounty={updateBounty} />
+                  </TabsContent>
+                </>
+              )}
             </Tabs>
 
           </div>
