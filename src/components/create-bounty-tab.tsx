@@ -19,7 +19,7 @@ interface CreateBountyTabProps {
 
 const formSchema = z.object({
   url: z.string().url().regex(/github\.com\/.+\/.+\/issues\/\d+/),
-  amount: z.coerce.number().min(0.000000000000000001, "Bounty must be greater than 0."),
+  amount: z.coerce.number().min(1, "Bounty must be greater than 0."),
 });
 
 const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
@@ -76,7 +76,7 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       }
       
       const { amount } = validation.data;
-      const amountInWei = ethers.parseEther(amount.toString());
+      const amountInWei = ethers.parseUnits(amount.toString(), 18);
 
       const { summary, title, error } = await getSummaryForIssue(issueUrl);
 
@@ -177,7 +177,7 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
               id="bountyAmount"
               type="number"
               step="any"
-              min="0"
+              min="1"
               placeholder="100"
               value={bountyAmount}
               onChange={(e) => setBountyAmount(e.target.value)}
