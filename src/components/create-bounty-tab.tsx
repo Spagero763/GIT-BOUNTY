@@ -2,12 +2,15 @@ import { useState } from 'react';
 import type { Bounty, Profile } from '@/lib/types';
 import { getSummaryForIssue } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
+import { useWallet } from '@/hooks/use-wallet';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Rocket } from 'lucide-react';
 import { z } from 'zod';
+import { ethers } from 'ethers';
+import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 
 interface CreateBountyTabProps {
   addBounty: (bounty: Bounty) => void;
@@ -16,7 +19,7 @@ interface CreateBountyTabProps {
 
 const formSchema = z.object({
   url: z.string().url().regex(/github\.com\/.+\/.+\/issues\/\d+/),
-  amount: z.coerce.number().min(0.001, "Bounty must be at least 0.001 ETH."),
+  amount: z.coerce.number().min(0.000000000000000001, "Bounty must be greater than 0."),
 });
 
 export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabProps) {
@@ -24,6 +27,7 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
   const [bountyAmount, setBountyAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { address, contracts } = useWallet();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +38,16 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         variant: "destructive",
         title: "Profile Incomplete",
         description: "Please set your GitHub username in the Profile tab first.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (!address || !contracts) {
+      toast({
+        variant: "destructive",
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to create a bounty.",
       });
       setIsLoading(false);
       return;
@@ -52,7 +66,8 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       }
       
       const { amount } = validation.data;
-      
+      const amountInWei = ethers.parseEther(amount.toString());
+
       const { summary, title, error } = await getSummaryForIssue(issueUrl);
 
       if (error) {
@@ -65,14 +80,46 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         return;
       }
 
+      // On-chain interaction
+      toast({ title: "Processing Transaction", description: "Approving token transfer..." });
+      
+      const approveTx = await contracts.devBountyToken.approve(CONTRACT_ADDRESSES.BountyFactory, amountInWei);
+      await approveTx.wait();
+      
+      toast({ title: "Processing Transaction", description: "Creating bounty on-chain..." });
+
+      // For `createBounty` we need a solver address. For now, we'll use a placeholder
+      // until we implement the full assignment flow.
+      const placeholderSolverAddress = ethers.ZeroAddress;
+
+      const createBountyTx = await contracts.bountyFactory.createBounty(
+        issueUrl,
+        placeholderSolverAddress, 
+        amountInWei
+      );
+      
+      const receipt = await createBountyTx.wait();
+      
+      // We need to get the bountyId from the event logs
+      let bountyId = '';
+      const event = receipt.logs.find((log: any) => log.fragment && log.fragment.name === 'BountyCreated');
+      if (event && event.args) {
+          bountyId = event.args.bountyId.toString();
+      }
+
+      if (!bountyId) {
+        throw new Error("Could not find BountyCreated event in transaction logs.");
+      }
+      
       const newBounty: Bounty = {
-        id: crypto.randomUUID(),
+        id: bountyId,
         githubUrl: issueUrl,
         title,
         summary,
         amount,
         status: 'Open',
         creatorGithub: profile.githubUsername,
+        creatorAddress: address,
         createdAt: new Date().toISOString(),
       };
 
@@ -80,17 +127,17 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
 
       toast({
         title: "Bounty Created!",
-        description: "Your new bounty is now live.",
+        description: `Your new bounty (ID: ${bountyId}) is now live on-chain.`,
       });
 
       setIssueUrl('');
       setBountyAmount('');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       toast({
         variant: "destructive",
-        title: "Something went wrong",
-        description: "Could not create bounty. Please try again.",
+        title: "Transaction Failed",
+        description: err.reason || "Could not create bounty. Please check the console and try again.",
       });
     } finally {
       setIsLoading(false);
@@ -118,26 +165,26 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="bountyAmount">Bounty Amount (ETH)</Label>
+            <Label htmlFor="bountyAmount">Bounty Amount (DBT)</Label>
             <Input
               id="bountyAmount"
               type="number"
-              step="0.001"
-              min="0.01"
-              placeholder="0.1"
+              step="any"
+              min="0"
+              placeholder="100"
               value={bountyAmount}
               onChange={(e) => setBountyAmount(e.target.value)}
               required
               className="bg-white/5 border-white/10"
             />
           </div>
-          <Button type="submit" disabled={isLoading} className="w-full">
+          <Button type="submit" disabled={isLoading || !address} className="w-full">
             {isLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Rocket className="mr-2 h-4 w-4" />
             )}
-            {isLoading ? 'Creating...' : 'Create Bounty'}
+            { !address ? "Connect Wallet to Create" : isLoading ? 'Creating...' : 'Create On-Chain Bounty'}
           </Button>
         </form>
       </CardContent>
