@@ -1,0 +1,54 @@
+diff --git a/node_modules/wagmi/dist/connectors/walletConnect.d.ts b/node_modules/wagmi/dist/connectors/walletConnect.d.ts
+index f10e34c..f6a2757 100644
+--- a/node_modules/wagmi/dist/connectors/walletConnect.d.ts
++++ b/node_modules/wagmi/dist/connectors/walletConnect.d.ts
+@@ -1,7 +1,6 @@
+ import { type CreateConnectorFn } from 'wagmi';
+ import { type WalletConnectParameters } from '@wagmi/core';
+ declare function walletConnect(parameters: WalletConnectParameters): CreateConnectorFn;
+-/** @deprecated use `walletConnect` instead */
+ declare function walletConnect(parameters: WalletConnectParameters): CreateConnectorFn;
+ 
+ export { walletConnect };
+diff --git a/node_modules/wagmi/package.json b/node_modules/wagmi/package.json
+index 5414f52..523a54b 100644
+--- a/node_modules/wagmi/package.json
++++ b/node_modules/wagmi/package.json
+@@ -51,7 +51,6 @@
+     "@wagmi/core": "2.10.10"
+   },
+   "dependencies": {
+-    "@reown/appkit-controllers": "0.1.0-beta.23",
+     "valtio": "1.13.2"
+   },
+   "peerDependencies": {
+diff --git a/node_modules/wagmi/dist/connectors/walletConnect.js b/node_modules/wagmi/dist/connectors/walletConnect.js
+index b28d3ba..39e943c 100644
+--- a/node_modules/wagmi/dist/connectors/walletConnect.js
++++ b/node_modules/wagmi/dist/connectors/walletConnect.js
+@@ -1,13 +1,8 @@
+ 'use client';
+-import { WalletConnectController } from '@reown/appkit-controllers';
+ import { walletConnect as walletConnect_ } from '@wagmi/core';
+ 
+ // src/connectors/walletConnect.ts
+ function walletConnect(parameters) {
+-  const { projectId } = parameters;
+-  if (projectId) {
+-    new WalletConnectController({
+-      projectId
+-    });
+-  }
+   return walletConnect_(parameters);
+ }
+ 
+diff --git a/node_modules/wagmi/dist/index.js b/node_modules/wagmi/dist/index.js
+index b915a3a..71c8f1e 100644
+--- a/node_modules/wagmi/dist/index.js
++++ b/node_modules/wagmi/dist/index.js
+@@ -1,5 +1,4 @@
+ 'use client';
+-import { ReownLogo } from '@reown/appkit-controllers';
+ import {
+   createConfig,
+   createConnector,
