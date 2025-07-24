@@ -4,6 +4,7 @@ import BountyCard from './bounty-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from '@/hooks/use-wallet';
+import { markBountyAsCompleted } from '@/app/actions';
 
 interface MyBountiesTabProps {
   allBounties: Bounty[];
@@ -13,9 +14,8 @@ interface MyBountiesTabProps {
 
 export default function MyBountiesTab({ allBounties, profile, updateBounty }: MyBountiesTabProps) {
   const { toast } = useToast();
-  const { address, contracts } = useWallet();
+  const { address } = useWallet();
   const [completingBountyId, setCompletingBountyId] = useState<string | null>(null);
-
 
   const myCreatedBounties = useMemo(() => {
     if (!address) return [];
@@ -28,41 +28,31 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
   }, [allBounties, address]);
 
   const handleComplete = async (bounty: Bounty) => {
-    if (!contracts) {
-        toast({
-            variant: "destructive",
-            title: "Wallet Not Connected",
-            description: "Please connect your wallet to complete a bounty.",
-        });
-        return;
-    }
-
     setCompletingBountyId(bounty.id);
     toast({
       title: "Completing Bounty...",
-      description: "Please approve the transaction in your wallet.",
+      description: "Processing completion on the server. Please wait.",
     });
 
     try {
-        const tx = await contracts.bountyFactory.completeBounty(bounty.id);
-        
-        toast({ title: "Transaction Sent", description: "Waiting for confirmation..." });
-        await tx.wait();
+      const result = await markBountyAsCompleted(bounty);
 
+      if (result.success) {
         updateBounty({ ...bounty, status: 'Completed' });
-        
         toast({
             title: "Bounty Completed!",
             description: `${bounty.title} has been marked as completed.`,
         });
+      } else {
+        throw new Error(result.error || "Failed to complete bounty.");
+      }
 
     } catch (err: any) {
         console.error("Complete Bounty Error:", err);
-        const errorMessage = err.reason || "Failed to complete bounty. Check console logs for details.";
         toast({
             variant: "destructive",
             title: "Completion Failed",
-            description: errorMessage,
+            description: err.message,
         });
     } finally {
         setCompletingBountyId(null);
