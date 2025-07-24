@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { markBountyAsCompleted } from '@/app/actions';
 
 interface BrowseBountiesTabProps {
   bounties: Bounty[];
@@ -18,35 +17,7 @@ type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 export default function BrowseBountiesTab({ bounties, profile, updateBounty }: BrowseBountiesTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('newest');
-  const [completingBountyId, setCompletingBountyId] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const handleComplete = async (bounty: Bounty) => {
-    setCompletingBountyId(bounty.id);
-     toast({
-      title: "Completing Bounty...",
-      description: "Processing on-chain transaction. Please wait.",
-    });
-
-    const result = await markBountyAsCompleted(bounty.id);
-
-    if (result.success) {
-      updateBounty({ ...bounty, status: 'Completed' });
-      toast({
-        title: "Bounty Completed!",
-        description: `${bounty.title} has been marked as completed.`,
-      });
-    } else {
-        toast({
-            variant: "destructive",
-            title: "Completion Failed",
-            description: result.error,
-        });
-    }
-    setCompletingBountyId(null);
-  };
-
-
+  
   const filteredAndSortedBounties = useMemo(() => {
     return bounties
       .filter(bounty => 
@@ -101,8 +72,7 @@ export default function BrowseBountiesTab({ bounties, profile, updateBounty }: B
             <BountyCard 
                 key={bounty.id} 
                 bounty={bounty} 
-                onComplete={handleComplete}
-                isCompleting={completingBountyId === bounty.id}
+                onComplete={() => {}}
              />
           ))}
         </div>

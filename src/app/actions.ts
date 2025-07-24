@@ -2,9 +2,6 @@
 
 import { summarizeGithubIssue } from '@/ai/flows/summarize-github-issue';
 import { z } from 'zod';
-import { ethers } from 'ethers';
-import { BountyFactory_ABI } from '@/lib/abi';
-import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 
 const GithubUrlSchema = z.string().url().regex(/github\.com\/.+\/.+\/issues\/\d+/, "Invalid GitHub Issue URL");
 
@@ -38,26 +35,4 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
     console.error(error);
     return { summary: '', title: '', error: 'An unexpected error occurred.' };
   }
-}
-
-export async function markBountyAsCompleted(bountyId: string): Promise<{ success: boolean, error?: string }> {
-    try {
-        if (!process.env.PRIVATE_KEY) {
-            throw new Error("PRIVATE_KEY is not set in the server environment.");
-        }
-        if (!process.env.RPC_URL) {
-            throw new Error("RPC_URL is not set in the server environment.");
-        }
-        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-        const contract = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, wallet);
-        
-        const tx = await contract.completeBounty(bountyId);
-        await tx.wait();
-
-        return { success: true };
-    } catch (err: any) {
-        console.error("Complete Bounty Error:", err);
-        return { success: false, error: err.reason || "Failed to complete bounty. Check server logs." };
-    }
 }
