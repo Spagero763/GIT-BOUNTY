@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   webpack: (config) => {
     // See https://webpack.js.org/configuration/watch/#watchoptions-ignored
     config.watchOptions.ignored = [
-        ...config.watchOptions.ignored,
+        ...(config.watchOptions.ignored || []),
         '**/.genkit/**',
     ]
     return config
