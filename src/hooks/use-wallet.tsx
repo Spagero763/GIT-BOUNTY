@@ -20,7 +20,7 @@ const config = createConfig({
 
 export function WagmiProvider({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProviderBase config={config}>
+    <WagmiProviderBase config={config} reconnectOnMount={false}>
       {children}
     </WagmiProviderBase>
   );
