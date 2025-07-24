@@ -3,7 +3,7 @@ import type { Bounty, Profile } from '@/lib/types';
 import BountyCard from './bounty-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from "@/hooks/use-toast";
-import { useWallet } from '@/hooks/use-wallet';
+import { useAccount } from 'wagmi';
 import { markBountyAsCompleted } from '@/app/actions';
 
 interface MyBountiesTabProps {
@@ -14,7 +14,7 @@ interface MyBountiesTabProps {
 
 export default function MyBountiesTab({ allBounties, profile, updateBounty }: MyBountiesTabProps) {
   const { toast } = useToast();
-  const { address } = useWallet();
+  const { address } = useAccount();
   const [completingBountyId, setCompletingBountyId] = useState<string | null>(null);
 
   const myCreatedBounties = useMemo(() => {

@@ -1,10 +1,10 @@
-import type { Bounty, BountyStatus, Profile } from '@/lib/types';
+import type { Bounty, BountyStatus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Github, CircleDollarSign, User, Calendar, Check, Briefcase, Loader2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { useWallet } from '@/hooks/use-wallet';
+import { useAccount } from 'wagmi';
 
 interface BountyCardProps {
   bounty: Bounty;
@@ -22,7 +22,7 @@ const statusConfig: { [key in BountyStatus]: { color: 'green' | 'yellow' | 'blue
 const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
 
 export default function BountyCard({ bounty, onComplete, isMyBountyView = false, isCompleting = false }: BountyCardProps) {
-  const { address } = useWallet();
+  const { address } = useAccount();
   const { color, text } = statusConfig[bounty.status];
   
   const canComplete = bounty.status === 'Assigned' && address && address.toLowerCase() === bounty.creatorAddress.toLowerCase();

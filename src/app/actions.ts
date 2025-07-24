@@ -2,7 +2,9 @@
 
 import { summarizeGithubIssue } from '@/ai/flows/summarize-github-issue';
 import { z } from 'zod';
-import { ethers } from 'ethers';
+import { createWalletClient, http, publicActions } from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { baseSepolia } from 'viem/chains';
 import { BountyFactory_ABI } from '@/lib/abi';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 import type { Bounty } from '@/lib/types';
@@ -43,7 +45,7 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
 }
 
 export async function markBountyAsCompleted(bounty: Bounty): Promise<{ success: boolean; error?: string }> {
-  const privateKey = process.env.PRIVATE_KEY;
+  const privateKey = process.env.PRIVATE_KEY as `0x${string}` | undefined;
   const rpcUrl = process.env.RPC_URL;
 
   if (!privateKey || !rpcUrl) {
@@ -53,18 +55,27 @@ export async function markBountyAsCompleted(bounty: Bounty): Promise<{ success: 
   }
 
   try {
-    const provider = new ethers.JsonRpcProvider(rpcUrl);
-    const wallet = new ethers.Wallet(privateKey, provider);
-    const bountyFactory = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, wallet);
+    const account = privateKeyToAccount(privateKey);
+    const client = createWalletClient({
+      account,
+      chain: baseSepolia,
+      transport: http(rpcUrl),
+    }).extend(publicActions);
 
-    // The contract's completeBounty function needs to be called by the contract owner.
-    const tx = await bountyFactory.completeBounty(bounty.id);
-    await tx.wait();
+    const { request } = await client.simulateContract({
+      address: CONTRACT_ADDRESSES.BountyFactory as `0x${string}`,
+      abi: BountyFactory_ABI,
+      functionName: 'completeBounty',
+      args: [BigInt(bounty.id)],
+      account,
+    });
     
+    await client.writeContract(request);
+
     return { success: true };
   } catch (err: any) {
     console.error("Failed to complete bounty:", err);
-    const errorMessage = err.reason || "An unknown error occurred during completion.";
+    const errorMessage = err.shortMessage || err.message || "An unknown error occurred during completion.";
     return { success: false, error: errorMessage };
   }
 }

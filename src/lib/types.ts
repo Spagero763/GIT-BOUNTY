@@ -1,9 +1,7 @@
-import type { ethers } from 'ethers';
-
 export type BountyStatus = 'Open' | 'Assigned' | 'Completed';
 
 export interface Bounty {
-  id: string; // Will now be the bountyId from the smart contract
+  id: string; // Will now be the transaction hash or a generated client-side ID
   githubUrl: string;
   title: string;
   summary: string;
@@ -18,12 +16,4 @@ export interface Bounty {
 
 export interface Profile {
   githubUsername: string;
-}
-
-export interface Contracts {
-  bountyFactory: ethers.Contract;
-  devBountyToken: ethers.Contract;
-  escrowPayments: ethers.Contract;
-  reputationTracker: ethers.Contract;
-  rewardDistributor: ethers.Contract;
 }

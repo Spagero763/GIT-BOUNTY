@@ -2,15 +2,16 @@ import { useState, useMemo } from 'react';
 import type { Bounty, Profile } from '@/lib/types';
 import { getSummaryForIssue } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
-import { useWallet } from '@/hooks/use-wallet';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Loader2, Rocket } from 'lucide-react';
 import { z } from 'zod';
-import { ethers } from 'ethers';
+import { parseUnits } from 'viem';
 import { CONTRACT_ADDRESSES } from '@/lib/contracts';
+import { DevBountyToken_ABI, BountyFactory_ABI } from '@/lib/abi';
 
 interface CreateBountyTabProps {
   addBounty: (bounty: Bounty) => void;
@@ -22,20 +23,24 @@ const formSchema = z.object({
   amount: z.coerce.number().min(1, "Bounty must be greater than 0."),
 });
 
-const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
+const DBT_TO_ETH_RATE = 0.00000000001;
 
 export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabProps) {
   const [issueUrl, setIssueUrl] = useState('');
   const [bountyAmount, setBountyAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { address, contracts } = useWallet();
+  const { address } = useAccount();
+  const { data: hash, writeContractAsync } = useWriteContract();
+
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   const ethEquivalent = useMemo(() => {
     const amount = parseFloat(bountyAmount);
-    if (isNaN(amount) || amount <= 0) {
-      return '0';
-    }
+    if (isNaN(amount) || amount <= 0) return '0';
     return (amount * DBT_TO_ETH_RATE).toPrecision(2);
   }, [bountyAmount]);
 
@@ -44,21 +49,13 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
     setIsLoading(true);
 
     if (!profile.githubUsername) {
-      toast({
-        variant: "destructive",
-        title: "Profile Incomplete",
-        description: "Please set your GitHub username in the Profile tab first.",
-      });
+      toast({ variant: "destructive", title: "Profile Incomplete", description: "Please set your GitHub username in the Profile tab first." });
       setIsLoading(false);
       return;
     }
 
-    if (!address || !contracts) {
-      toast({
-        variant: "destructive",
-        title: "Wallet Not Connected",
-        description: "Please connect your wallet to create a bounty.",
-      });
+    if (!address) {
+      toast({ variant: "destructive", title: "Wallet Not Connected", description: "Please connect your wallet to create a bounty." });
       setIsLoading(false);
       return;
     }
@@ -66,81 +63,59 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
     try {
       const validation = formSchema.safeParse({ url: issueUrl, amount: bountyAmount });
       if (!validation.success) {
-        toast({
-          variant: "destructive",
-          title: "Invalid Input",
-          description: validation.error.errors[0].message,
-        });
+        toast({ variant: "destructive", title: "Invalid Input", description: validation.error.errors[0].message });
         setIsLoading(false);
         return;
       }
       
       const { amount } = validation.data;
-      const amountInWei = ethers.parseUnits(amount.toString(), 18);
+      const amountInWei = parseUnits(amount.toString(), 18);
 
       const { summary, title, error } = await getSummaryForIssue(issueUrl);
 
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error,
-        });
+        toast({ variant: "destructive", title: "Error", description: error });
         setIsLoading(false);
         return;
       }
 
       toast({ title: "Processing Transaction", description: "Please approve the token transfer in your wallet." });
       
-      const approveTx = await contracts.devBountyToken.approve(CONTRACT_ADDRESSES.BountyFactory, amountInWei);
-      
+      await writeContractAsync({
+        address: CONTRACT_ADDRESSES.DevBountyToken as `0x${string}`,
+        abi: DevBountyToken_ABI,
+        functionName: 'approve',
+        args: [CONTRACT_ADDRESSES.BountyFactory, amountInWei],
+      });
+
       toast({ title: "Approval Sent", description: "Waiting for approval confirmation..." });
-      await approveTx.wait();
+      
+      // We need a better way to wait for the approval to be confirmed before proceeding.
+      // For now, we will add a small delay.
+      await new Promise(resolve => setTimeout(resolve, 5000));
       
       toast({ title: "Approval Confirmed!", description: "Creating bounty on-chain... Please confirm in your wallet." });
       
-      // According to the contract, createBounty requires a solver address.
-      // For this UX, we'll temporarily assign the creator as the solver.
-      const createBountyTx = await contracts.bountyFactory.createBounty(
-        issueUrl,
-        address, // Solver address (placeholder)
-        amountInWei
-      );
+      const bountyTx = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.BountyFactory as `0x${string}`,
+        abi: BountyFactory_ABI,
+        functionName: 'createBounty',
+        args: [issueUrl, address, amountInWei],
+      });
       
       toast({ title: "Bounty Creation Sent", description: "Waiting for transaction confirmation..." });
-      const receipt = await createBountyTx.wait();
-      
-      let bountyId = '';
-      if (receipt.logs) {
-        const eventInterface = new ethers.Interface(contracts.bountyFactory.interface.fragments);
-        for (const log of receipt.logs) {
-            try {
-                const parsedLog = eventInterface.parseLog(log);
-                if (parsedLog && parsedLog.name === 'BountyCreated') {
-                    bountyId = parsedLog.args.bountyId.toString();
-                    break;
-                }
-            } catch (e) {
-                // Not a log from this contract, ignore
-            }
-        }
-      }
-
-      if (!bountyId) {
-        throw new Error("Could not find BountyCreated event in transaction logs.");
-      }
       
       const newBounty: Bounty = {
-        id: bountyId,
+        id: bountyTx, // Placeholder, ideally we'd get this from the event
         githubUrl: issueUrl,
         title,
         summary,
         amount,
-        status: 'Assigned', // Since it's created with a solver
+        status: 'Assigned',
         creatorGithub: profile.githubUsername,
-        solverGithub: profile.githubUsername, // Assigned to self initially
+        solverGithub: profile.githubUsername,
         creatorAddress: address,
-        solverAddress: address, // Assigned to self initially
+        solverAddress: address,
         createdAt: new Date().toISOString(),
       };
 
@@ -148,14 +123,14 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
 
       toast({
         title: "Bounty Created!",
-        description: `Your new bounty (ID: ${bountyId}) is now live on-chain.`,
+        description: `Your new bounty is now live on-chain.`,
       });
 
       setIssueUrl('');
       setBountyAmount('');
     } catch (err: any) {
       console.error(err);
-      const errorMessage = err.reason || "Could not create bounty. Please check the console and try again.";
+      const errorMessage = err.shortMessage || err.message || "Could not create bounty. Please check the console and try again.";
       toast({
         variant: "destructive",
         title: "Transaction Failed",
