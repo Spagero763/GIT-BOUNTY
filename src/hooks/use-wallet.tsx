@@ -16,6 +16,7 @@ const config = createConfig({
   transports: {
     [baseSepolia.id]: http(),
   },
+  persister: null,
 });
 
 export function WagmiProvider({ children }: { children: React.ReactNode }) {
