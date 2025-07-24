@@ -45,8 +45,11 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
 // A more robust solution would involve modifying the smart contract.
 export async function assignBountyToSolver(bountyId: string): Promise<{ success: boolean, error?: string }> {
     try {
-        if (!process.env.PRIVATE_KEY || !process.env.RPC_URL) {
-            throw new Error("Server environment not configured for blockchain transactions.");
+        if (!process.env.PRIVATE_KEY) {
+            throw new Error("PRIVATE_KEY is not set in the server environment.");
+        }
+        if (!process.env.RPC_URL) {
+            throw new Error("RPC_URL is not set in the server environment.");
         }
         const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -60,16 +63,19 @@ export async function assignBountyToSolver(bountyId: string): Promise<{ success:
 
         return { success: true };
     } catch (err: any) {
-        console.error(err);
-        return { success: false, error: err.reason || "Failed to assign bounty." };
+        console.error("Assign Bounty Error:", err);
+        return { success: false, error: err.reason || "Failed to assign bounty. Check server logs." };
     }
 }
 
 
 export async function markBountyAsCompleted(bountyId: string): Promise<{ success: boolean, error?: string }> {
     try {
-        if (!process.env.PRIVATE_KEY || !process.env.RPC_URL) {
-            throw new Error("Server environment not configured for blockchain transactions.");
+        if (!process.env.PRIVATE_KEY) {
+            throw new Error("PRIVATE_KEY is not set in the server environment.");
+        }
+        if (!process.env.RPC_URL) {
+            throw new Error("RPC_URL is not set in the server environment.");
         }
         const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
         const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
@@ -80,7 +86,7 @@ export async function markBountyAsCompleted(bountyId: string): Promise<{ success
 
         return { success: true };
     } catch (err: any) {
-        console.error(err);
-        return { success: false, error: err.reason || "Failed to complete bounty." };
+        console.error("Complete Bounty Error:", err);
+        return { success: false, error: err.reason || "Failed to complete bounty. Check server logs." };
     }
 }
