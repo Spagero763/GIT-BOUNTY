@@ -3,6 +3,8 @@ import type { Bounty, Profile } from '@/lib/types';
 import BountyCard from './bounty-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from "@/hooks/use-toast";
+import { markBountyAsCompleted } from '@/app/actions';
+import { useWallet } from '@/hooks/use-wallet';
 
 interface MyBountiesTabProps {
   allBounties: Bounty[];
@@ -12,21 +14,42 @@ interface MyBountiesTabProps {
 
 export default function MyBountiesTab({ allBounties, profile, updateBounty }: MyBountiesTabProps) {
   const { toast } = useToast();
+  const { address } = useWallet();
+  const [completingBountyId, setCompletingBountyId] = useState<string | null>(null);
+
 
   const myCreatedBounties = useMemo(() => {
-    return allBounties.filter(b => b.creatorGithub === profile.githubUsername);
-  }, [allBounties, profile.githubUsername]);
+    return allBounties.filter(b => b.creatorAddress && b.creatorAddress.toLowerCase() === address?.toLowerCase());
+  }, [allBounties, address]);
 
   const myAssignedBounties = useMemo(() => {
+    // Using solverGithub for now, as solverAddress is not set on assignment in this app version
     return allBounties.filter(b => b.solverGithub === profile.githubUsername);
   }, [allBounties, profile.githubUsername]);
 
-  const handleComplete = (bounty: Bounty) => {
-    updateBounty({ ...bounty, status: 'Completed' });
-    toast({
-      title: "Bounty Completed!",
-      description: `${bounty.title} has been marked as completed.`,
+  const handleComplete = async (bounty: Bounty) => {
+    setCompletingBountyId(bounty.id);
+     toast({
+      title: "Completing Bounty...",
+      description: "Processing on-chain transaction. Please wait.",
     });
+
+    const result = await markBountyAsCompleted(bounty.id);
+
+    if (result.success) {
+      updateBounty({ ...bounty, status: 'Completed' });
+      toast({
+        title: "Bounty Completed!",
+        description: `${bounty.title} has been marked as completed.`,
+      });
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Completion Failed",
+            description: result.error,
+        });
+    }
+    setCompletingBountyId(null);
   };
 
   const renderBountyList = (bounties: Bounty[], emptyMessage: string) => {
@@ -47,17 +70,18 @@ export default function MyBountiesTab({ allBounties, profile, updateBounty }: My
             onAssign={() => {}} 
             onComplete={handleComplete}
             isMyBountyView={true}
+            isCompleting={completingBountyId === bounty.id}
           />
         ))}
       </div>
     );
   }
   
-  if (!profile.githubUsername) {
+  if (!profile.githubUsername || !address) {
     return (
        <div className="text-center py-16 text-gray-400 bg-white/5 rounded-lg border border-dashed border-white/10">
-        <h3 className="text-xl font-semibold">Please set your GitHub username</h3>
-        <p>Go to the Profile tab to view your bounties.</p>
+        <h3 className="text-xl font-semibold">Connect Wallet & Set Profile</h3>
+        <p>Please connect your wallet and set your GitHub username in the Profile tab to view your bounties.</p>
       </div>
     );
   }

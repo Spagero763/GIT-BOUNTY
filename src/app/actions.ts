@@ -2,6 +2,9 @@
 
 import { summarizeGithubIssue } from '@/ai/flows/summarize-github-issue';
 import { z } from 'zod';
+import { ethers } from 'ethers';
+import { BountyFactory_ABI } from '@/lib/abi';
+import { CONTRACT_ADDRESSES } from '@/lib/contracts';
 
 const GithubUrlSchema = z.string().url().regex(/github\.com\/.+\/.+\/issues\/\d+/, "Invalid GitHub Issue URL");
 
@@ -35,4 +38,49 @@ export async function getSummaryForIssue(issueUrl: string): Promise<{ summary: s
     console.error(error);
     return { summary: '', title: '', error: 'An unexpected error occurred.' };
   }
+}
+
+// NOTE: This is a placeholder as the contract doesn't support assigning a bounty after creation.
+// We are calling 'submitSolution' as a stand-in for a real assignment function.
+// A more robust solution would involve modifying the smart contract.
+export async function assignBountyToSolver(bountyId: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        if (!process.env.PRIVATE_KEY || !process.env.RPC_URL) {
+            throw new Error("Server environment not configured for blockchain transactions.");
+        }
+        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+        const contract = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, wallet);
+        
+        // This is a placeholder interaction. 
+        // In a real scenario, you'd have a proper assign function in your contract.
+        // For now, we simulate this by calling submitSolution.
+        const tx = await contract.submitSolution(bountyId);
+        await tx.wait();
+
+        return { success: true };
+    } catch (err: any) {
+        console.error(err);
+        return { success: false, error: err.reason || "Failed to assign bounty." };
+    }
+}
+
+
+export async function markBountyAsCompleted(bountyId: string): Promise<{ success: boolean, error?: string }> {
+    try {
+        if (!process.env.PRIVATE_KEY || !process.env.RPC_URL) {
+            throw new Error("Server environment not configured for blockchain transactions.");
+        }
+        const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+        const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+        const contract = new ethers.Contract(CONTRACT_ADDRESSES.BountyFactory, BountyFactory_ABI, wallet);
+        
+        const tx = await contract.completeBounty(bountyId);
+        await tx.wait();
+
+        return { success: true };
+    } catch (err: any) {
+        console.error(err);
+        return { success: false, error: err.reason || "Failed to complete bounty." };
+    }
 }

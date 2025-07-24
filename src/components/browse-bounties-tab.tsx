@@ -3,7 +3,9 @@ import type { Bounty, Profile } from '@/lib/types';
 import BountyCard from './bounty-card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { assignBountyToSolver } from '@/app/actions';
 
 interface BrowseBountiesTabProps {
   bounties: Bounty[];
@@ -16,18 +18,51 @@ type SortOption = 'newest' | 'oldest' | 'highest' | 'lowest';
 export default function BrowseBountiesTab({ bounties, profile, updateBounty }: BrowseBountiesTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [assigningBountyId, setAssigningBountyId] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const handleAssign = (bounty: Bounty) => {
-    if (profile.githubUsername) {
-        updateBounty({ ...bounty, status: 'Assigned', solverGithub: profile.githubUsername });
+  const handleAssign = async (bounty: Bounty) => {
+    if (!profile.githubUsername) {
+      toast({
+        variant: "destructive",
+        title: "Profile Incomplete",
+        description: "Please set your GitHub username in the Profile tab first.",
+      });
+      return;
     }
+    setAssigningBountyId(bounty.id);
+    toast({
+      title: "Assigning Bounty...",
+      description: "Submitting your interest on-chain. Please wait.",
+    });
+
+    // In the current contract, there is no direct "assign" function.
+    // We are using `submitSolution` as a stand-in to represent a user taking on the task.
+    // This is a simplification; a real-world scenario might require contract changes.
+    const result = await assignBountyToSolver(bounty.id);
+
+    if (result.success) {
+      updateBounty({ ...bounty, status: 'Assigned', solverGithub: profile.githubUsername });
+      toast({
+        title: "Bounty Assigned!",
+        description: "You have successfully taken on this bounty.",
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Assignment Failed",
+        description: result.error,
+      });
+    }
+    setAssigningBountyId(null);
   };
 
   const filteredAndSortedBounties = useMemo(() => {
     return bounties
       .filter(bounty => 
         (bounty.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-         bounty.summary.toLowerCase().includes(searchTerm.toLowerCase()))
+         bounty.summary.toLowerCase().includes(searchTerm.toLowerCase())) &&
+         bounty.status === 'Open'
       )
       .sort((a, b) => {
         switch (sortOption) {
@@ -74,12 +109,19 @@ export default function BrowseBountiesTab({ bounties, profile, updateBounty }: B
       {filteredAndSortedBounties.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedBounties.map((bounty) => (
-            <BountyCard key={bounty.id} bounty={bounty} profile={profile} onAssign={handleAssign} onComplete={() => {}} />
+            <BountyCard 
+                key={bounty.id} 
+                bounty={bounty} 
+                profile={profile} 
+                onAssign={handleAssign} 
+                onComplete={() => {}}
+                isAssigning={assigningBountyId === bounty.id}
+             />
           ))}
         </div>
       ) : (
         <div className="text-center py-16 text-gray-400 bg-white/5 rounded-lg border border-dashed border-white/10">
-          <h3 className="text-xl font-semibold">No bounties found</h3>
+          <h3 className="text-xl font-semibold">No open bounties found</h3>
           <p>Try adjusting your filters or check back later.</p>
         </div>
       )}
