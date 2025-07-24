@@ -22,12 +22,16 @@ const statusConfig: { [key in BountyStatus]: { color: 'green' | 'yellow' | 'blue
   Completed: { color: 'blue', text: 'Completed' },
 };
 
+const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
+
 export default function BountyCard({ bounty, profile, onAssign, onComplete, isMyBountyView = false, isAssigning = false, isCompleting = false }: BountyCardProps) {
   const { address } = useWallet();
   const { color, text } = statusConfig[bounty.status];
   
   const canAssign = bounty.status === 'Open' && profile.githubUsername && address && address.toLowerCase() !== bounty.creatorAddress.toLowerCase();
   const canComplete = bounty.status === 'Assigned' && address && address.toLowerCase() === bounty.creatorAddress.toLowerCase();
+  
+  const ethEquivalent = (bounty.amount * DBT_TO_ETH_RATE).toPrecision(2);
 
   return (
     <Card className="bg-white/5 border border-white/10 text-gray-200 flex flex-col h-full transform transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1">
@@ -50,7 +54,7 @@ export default function BountyCard({ bounty, profile, onAssign, onComplete, isMy
         <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
                 <CircleDollarSign className="w-4 h-4 text-accent"/>
-                <span className="font-semibold">{bounty.amount} DBT</span>
+                <span className="font-semibold">{bounty.amount} DBT (~{ethEquivalent} ETH)</span>
             </div>
             <div className="flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-gray-400"/>

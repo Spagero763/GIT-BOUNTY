@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Bounty, Profile } from '@/lib/types';
 import { getSummaryForIssue } from '@/app/actions';
 import { useToast } from "@/hooks/use-toast";
@@ -22,12 +22,22 @@ const formSchema = z.object({
   amount: z.coerce.number().min(0.000000000000000001, "Bounty must be greater than 0."),
 });
 
+const DBT_TO_ETH_RATE = 0.00000000001; // 0.000000001 ETH / 100 DBT
+
 export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabProps) {
   const [issueUrl, setIssueUrl] = useState('');
   const [bountyAmount, setBountyAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { address, contracts } = useWallet();
+
+  const ethEquivalent = useMemo(() => {
+    const amount = parseFloat(bountyAmount);
+    if (isNaN(amount) || amount <= 0) {
+      return 0;
+    }
+    return amount * DBT_TO_ETH_RATE;
+  }, [bountyAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +90,6 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
         return;
       }
 
-      // On-chain interaction
       toast({ title: "Processing Transaction", description: "Please approve the token transfer in your wallet." });
       
       const approveTx = await contracts.devBountyToken.approve(CONTRACT_ADDRESSES.BountyFactory, amountInWei);
@@ -131,10 +140,11 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
       setBountyAmount('');
     } catch (err: any) {
       console.error(err);
+      const errorMessage = err.reason || "Could not create bounty. Please check the console and try again.";
       toast({
         variant: "destructive",
         title: "Transaction Failed",
-        description: err.reason || "Could not create bounty. Please check the console and try again.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -174,6 +184,11 @@ export default function CreateBountyTab({ addBounty, profile }: CreateBountyTabP
               required
               className="bg-white/5 border-white/10"
             />
+            {ethEquivalent > 0 && (
+                <p className="text-sm text-gray-400 mt-1">
+                    ~ {ethEquivalent.toPrecision(2)} Base Sepolia ETH
+                </p>
+            )}
           </div>
           <Button type="submit" disabled={isLoading || !address} className="w-full">
             {isLoading ? (
