@@ -60,21 +60,13 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const checkConnection = async () => {
-      const storedAddress = localStorage.getItem('walletAddress');
-      if (storedAddress && typeof window.ethereum !== 'undefined') {
-          connectWallet();
-      }
-    };
-    checkConnection();
-  }, [connectWallet]);
-  
-  useEffect(() => {
     if (typeof window.ethereum !== 'undefined') {
       const handleAccountsChanged = (accounts: string[]) => {
         if (accounts.length > 0) {
+          // Re-connect to update address and contract instances
           connectWallet();
         } else {
+          // Handle disconnection
           disconnectWallet();
         }
       };
