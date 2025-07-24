@@ -16,11 +16,17 @@ GitBounty Board provides a trustless platform where:
 
 The platform leverages smart contracts to act as a decentralized escrow service, ensuring that funds are only released to the developer once the bounty creator confirms the issue has been resolved.
 
-## How It Works
+## How It Works: The Payout Flow
 
-1.  **Create a Bounty**: A user connects their wallet and provides a GitHub issue URL. They specify a bounty amount in DBT (DevBounty Token), which is then locked in an escrow smart contract.
-2.  **Assign a Solver**: The creator assigns the bounty to a specific developer's wallet address at the time of creation.
-3.  **Completion & Payout**: Once the work is done and the corresponding pull request is merged, the bounty creator can mark the bounty as "Completed". This action triggers the smart contract to release the locked funds to the solver's wallet.
+The process is designed to be trustless, with smart contracts acting as a secure, automated escrow agent.
+
+1.  **Create & Fund a Bounty**: A "Creator" funds a GitHub issue by specifying a bounty amount in DBT (DevBounty Token) and assigning a "Solver's" wallet address.
+2.  **Secure Escrow**: The `BountyFactory` smart contract immediately takes the DBT from the Creator and locks it in the `EscrowPayments` contract. The funds are now held securely in escrow, designated for the specific Solver's wallet.
+3.  **Work is Completed**: The Solver finishes the task on GitHub and their pull request is merged.
+4.  **Creator Confirms Completion**: The Creator clicks "Mark as Completed" in the app. This triggers a secure, server-side transaction that calls the `completeBounty` function on the `BountyFactory` contract.
+5.  **Automatic Payout**: The `BountyFactory` contract verifies the action and instructs the `EscrowPayments` contract to release the funds. The `EscrowPayments` contract automatically transfers the locked DBT directly to the Solver's wallet.
+
+This system guarantees that the Creator can't withdraw the funds after they've been committed, and the Solver is assured of their payment as soon as the work is verified.
 
 ## Technology Stack
 
