@@ -12,18 +12,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  webpack: (config) => {
-    // Vercel's build environment provides a read-only config object.
-    // We cannot mutate it directly, so we create a new object.
-    config.watchOptions = {
-      ...config.watchOptions,
-      ignored: [
-        ...(config.watchOptions.ignored || []),
-        '**/.genkit/**',
-    ]
-    };
-    return config
-  },
 };
 
 export default nextConfig;
